@@ -41,7 +41,7 @@ export default function DestinationCard({ item, category, onDelete }: Props) {
         <div className="flex items-center justify-between mt-3">
           <div>
             <p className="text-xs text-gray-400">Base Price</p>
-            <p className="text-sm font-semibold text-emerald-700">ETB {item.basePrice.toLocaleString()}</p>
+            <p className="text-sm font-semibold text-green-700">ETB {item.basePrice.toLocaleString()}</p>
           </div>
           <div className="text-right">
             <p className="text-xs text-gray-400">Daily Quota</p>
@@ -53,7 +53,7 @@ export default function DestinationCard({ item, category, onDelete }: Props) {
         <div className="flex gap-2 mt-4">
           <Link
             href={`/admin/${category}/${item._id}`}
-            className="flex-1 text-center px-3 py-1.5 text-xs font-medium bg-emerald-50 text-emerald-700 rounded-lg hover:bg-emerald-100 transition-colors"
+            className="flex-1 text-center px-3 py-1.5 text-xs font-medium bg-green-50 text-green-700 rounded-lg hover:bg-green-100 transition-colors"
           >
             Manage
           </Link>

@@ -41,7 +41,8 @@ exports.register = async (req, res) => {
         id: user._id,
         name: user.fullName,
         email: user.email,
-        role: user.role
+        role: user.role,
+        profileImage: user.profileImage
       }
     });
   } catch (error) {
@@ -106,7 +107,8 @@ exports.login = async (req, res) => {
         id: user._id,
         name: user.fullName,
         email: user.email,
-        role: user.role
+        role: user.role,
+        profileImage: user.profileImage
       }
     });
   } catch (error) {
@@ -152,7 +154,8 @@ exports.getMe = async (req, res) => {
         email: user.email,
         phone: user.phone,
         role: user.role,
-        status: user.status
+        status: user.status,
+        profileImage: user.profileImage
       }
     });
   } catch (error) {

@@ -5,6 +5,8 @@ interface User {
   name: string;
   email: string;
   role: string;
+  profileImage?: string;
+  token?: string;
 }
 
 interface AuthState {
@@ -52,7 +54,10 @@ const authSlice = createSlice({
       if (action.payload.refreshToken) {
         localStorage.setItem("refreshToken", action.payload.refreshToken);
       }
-      document.cookie = `token=${action.payload.token}; path=/; max-age=${7 * 24 * 60 * 60}; SameSite=Lax`;
+      const maxAge = 7 * 24 * 60 * 60;
+      document.cookie = `token=${action.payload.token}; path=/; max-age=${maxAge}; SameSite=Lax`;
+      // Store role in cookie so middleware can do role-based redirects
+      document.cookie = `role=${action.payload.user.role}; path=/; max-age=${maxAge}; SameSite=Lax`;
     },
     logout: (state) => {
       state.user = null;
@@ -62,7 +67,8 @@ const authSlice = createSlice({
       localStorage.removeItem("token");
       localStorage.removeItem("refreshToken");
       localStorage.removeItem("user");
-      document.cookie = "token=; path=/; max-age=0";
+      document.cookie = "token=; path=/; max-age=0; SameSite=Lax";
+      document.cookie = "role=; path=/; max-age=0; SameSite=Lax";
     },
     updateToken: (state, action: PayloadAction<string>) => {
       state.token = action.payload;

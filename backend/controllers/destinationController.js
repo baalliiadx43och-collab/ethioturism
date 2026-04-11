@@ -3,7 +3,7 @@ const NationalPark = require('../models/NationalPark');
 const CulturalFestival = require('../models/CulturalFestival');
 const Booking = require('../models/Booking');
 const ActivityLog = require('../models/ActivityLog');
-const { cloudinary } = require('../config/cloudinary');
+const { cloudinary, uploadFiles, uploadToCloudinary } = require('../config/cloudinary');
 
 // Map category string to model
 const getModel = (category) => {
@@ -70,17 +70,21 @@ exports.create = async (req, res) => {
     if (!Model) return res.status(400).json({ success: false, message: 'Invalid category' });
 
     const {
-      name, location, description, videoUrl, basePrice,
+      name, location, description, basePrice,
       dailyQuota, transportationOptions, festivalDates,
       festivalType, wildlife
     } = req.body;
 
-    // Images uploaded via multer are in req.files
-    const images = req.files ? req.files.map(f => f.path) : [];
+    // Upload images to Cloudinary (memory storage → stream)
+    const imageFiles = (req.files && req.files.images) || [];
+    const images = imageFiles.length > 0 ? await uploadFiles(imageFiles) : [];
+
+    // Video was pre-uploaded by the frontend — just read the URL from body
+    const videoUrl = req.body.videoUrl || '';
 
     const data = {
       name, location, description,
-      videoUrl: videoUrl || '',
+      videoUrl,
       basePrice: Number(basePrice),
       dailyQuota: Number(dailyQuota),
       images,
@@ -142,9 +146,15 @@ exports.update = async (req, res) => {
       item.wildlife = Array.isArray(req.body.wildlife) ? req.body.wildlife : JSON.parse(req.body.wildlife);
     }
 
-    // Append new uploaded images
-    if (req.files && req.files.length > 0) {
-      item.images.push(...req.files.map(f => f.path));
+    // Upload and append new images
+    const newImageFiles = (req.files && req.files.images) || [];
+    if (newImageFiles.length > 0) {
+      const newUrls = await uploadFiles(newImageFiles);
+      item.images.push(...newUrls);
+    }
+    const newVideoFiles = (req.files && req.files.video) || [];
+    if (newVideoFiles.length > 0) {
+      item.videoUrl = await uploadToCloudinary(newVideoFiles[0].buffer, newVideoFiles[0].mimetype);
     }
 
     await item.save();
@@ -262,11 +272,16 @@ exports.updateQuota = async (req, res) => {
 // Standalone upload endpoint — returns Cloudinary URLs
 exports.uploadMedia = async (req, res) => {
   try {
-    if (!req.files || req.files.length === 0) {
+    const allFiles = (req.files && req.files.files) || [];
+    if (allFiles.length === 0) {
       return res.status(400).json({ success: false, message: 'No files uploaded' });
     }
-    const urls = req.files.map(f => ({ url: f.path, type: f.mimetype.startsWith('video/') ? 'video' : 'image' }));
-    res.json({ success: true, files: urls });
+    const urls = await uploadFiles(allFiles);
+    const files = urls.map((url, i) => ({
+      url,
+      type: allFiles[i].mimetype.startsWith('video/') ? 'video' : 'image'
+    }));
+    res.json({ success: true, files });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }

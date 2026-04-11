@@ -24,7 +24,11 @@ const authLimiter = rateLimit({
 
 // Middleware
 app.use(cors({
-  origin: process.env.CLIENT_URL || 'http://localhost:3000',
+  origin: [
+    process.env.CLIENT_URL || 'http://localhost:3000',
+    'http://localhost:3001',
+    'http://localhost:3002'
+  ],
   credentials: true
 }));
 app.use(express.json());
@@ -36,6 +40,9 @@ app.use('/api/v1/super-admin', require('./routes/superAdminRoutes'));
 app.use('/api/v1/destinations', require('./routes/destinationRoutes'));
 app.use('/api/v1/admins', require('./routes/adminRoutes'));
 app.use('/api/v1/users', require('./routes/userRoutes'));
+app.use('/api/v1/bookings', require('./routes/bookingRoutes'));
+app.use('/api/v1/public', require('./routes/publicDestinationRoutes'));
+app.use('/api/v1/ai', require('./routes/aiRoutes'));
 
 // Health check
 app.get('/api/v1/health', (req, res) => {

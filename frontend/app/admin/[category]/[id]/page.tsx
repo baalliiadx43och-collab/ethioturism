@@ -114,8 +114,12 @@ export default function DestinationDetailPage() {
 
           {item.videoUrl && (
             <div>
-              <p className="text-gray-400 text-xs mb-1">Video</p>
-              <a href={item.videoUrl} target="_blank" rel="noreferrer" className="text-sm text-emerald-600 hover:underline break-all">{item.videoUrl}</a>
+              <p className="text-gray-400 text-xs mb-2">Video</p>
+              <video
+                src={item.videoUrl}
+                controls
+                className="w-full rounded-lg max-h-72 bg-black"
+              />
             </div>
           )}
 

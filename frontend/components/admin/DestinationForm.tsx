@@ -2,13 +2,12 @@
 
 import { useState } from "react";
 import { useForm, useFieldArray } from "react-hook-form";
-import { Category } from "@/store/slices/destinationApiSlice";
+import { Category, useUploadMediaMutation } from "@/store/slices/destinationApiSlice";
 
 interface FormValues {
   name: string;
   location: string;
   description: string;
-  videoUrl: string;
   basePrice: number;
   dailyQuota: number;
   transportationOptions: { value: string }[];
@@ -21,7 +20,18 @@ interface Props {
   category: Category;
   onSubmit: (data: FormData) => Promise<void>;
   isLoading: boolean;
-  defaultValues?: Partial<FormValues>;
+  defaultValues?: {
+    name?: string;
+    location?: string;
+    description?: string;
+    basePrice?: number;
+    dailyQuota?: number;
+    transportationOptions?: string[];
+    wildlife?: string[];
+    festivalType?: string;
+    festivalDates?: { date: string; availableQuota: number; eventName: string }[];
+    videoUrl?: string;
+  };
 }
 
 const STEPS = ["Basic Info", "Media Upload", "Quota & Pricing"];
@@ -30,34 +40,29 @@ export default function DestinationForm({ category, onSubmit, isLoading, default
   const [step, setStep] = useState(0);
   const [imageFiles, setImageFiles] = useState<File[]>([]);
   const [imagePreviews, setImagePreviews] = useState<string[]>([]);
+  const [videoFile, setVideoFile] = useState<File | null>(null);
+  const [uploadedVideoUrl, setUploadedVideoUrl] = useState<string>(defaultValues?.videoUrl ?? "");
+  const [videoUploading, setVideoUploading] = useState(false);
 
-  const {
-    register,
-    handleSubmit,
-    control,
-    formState: { errors },
-    trigger,
-  } = useForm<FormValues>({
+  const [uploadMedia] = useUploadMediaMutation();
+
+  const { register, handleSubmit, control, formState: { errors }, trigger } = useForm<FormValues, unknown, FormValues>({
     defaultValues: {
       name: defaultValues?.name ?? "",
       location: defaultValues?.location ?? "",
       description: defaultValues?.description ?? "",
-      videoUrl: defaultValues?.videoUrl ?? "",
       basePrice: defaultValues?.basePrice ?? 0,
       dailyQuota: defaultValues?.dailyQuota ?? 50,
-      transportationOptions: defaultValues?.transportationOptions?.map(v => ({ value: v })) ?? [{ value: "" }],
-      wildlife: defaultValues?.wildlife?.map(v => ({ value: v })) ?? [{ value: "" }],
-      festivalType: defaultValues?.festivalType ?? "",
+      transportationOptions: defaultValues?.transportationOptions?.map((v: string) => ({ value: v })) ?? [{ value: "" }],
+      wildlife: defaultValues?.wildlife?.map((v: string) => ({ value: v })) ?? [{ value: "" }],      festivalType: defaultValues?.festivalType ?? "",
       festivalDates: defaultValues?.festivalDates ?? [],
     },
   });
 
   const { fields: transportFields, append: appendTransport, remove: removeTransport } =
     useFieldArray({ control, name: "transportationOptions" });
-
   const { fields: wildlifeFields, append: appendWildlife, remove: removeWildlife } =
     useFieldArray({ control, name: "wildlife" });
-
   const { fields: festivalDateFields, append: appendFestivalDate, remove: removeFestivalDate } =
     useFieldArray({ control, name: "festivalDates" });
 
@@ -66,7 +71,7 @@ export default function DestinationForm({ category, onSubmit, isLoading, default
     setImageFiles(prev => [...prev, ...files]);
     files.forEach(f => {
       const reader = new FileReader();
-      reader.onload = (ev) => setImagePreviews(prev => [...prev, ev.target?.result as string]);
+      reader.onload = ev => setImagePreviews(prev => [...prev, ev.target?.result as string]);
       reader.readAsDataURL(f);
     });
   };
@@ -74,6 +79,24 @@ export default function DestinationForm({ category, onSubmit, isLoading, default
   const removeImage = (idx: number) => {
     setImageFiles(prev => prev.filter((_, i) => i !== idx));
     setImagePreviews(prev => prev.filter((_, i) => i !== idx));
+  };
+
+  // Upload video to Cloudinary immediately on selection — get URL back before form submit
+  const handleVideoSelect = async (file: File) => {
+    setVideoFile(file);
+    setVideoUploading(true);
+    try {
+      const fd = new FormData();
+      fd.append("files", file);
+      const result = await uploadMedia(fd).unwrap();
+      setUploadedVideoUrl(result.files[0]?.url ?? "");
+    } catch {
+      alert("Video upload failed. Please try a smaller file or check your connection.");
+      setVideoFile(null);
+      setUploadedVideoUrl("");
+    } finally {
+      setVideoUploading(false);
+    }
   };
 
   const nextStep = async () => {
@@ -91,16 +114,12 @@ export default function DestinationForm({ category, onSubmit, isLoading, default
     fd.append("name", values.name);
     fd.append("location", values.location);
     fd.append("description", values.description);
-    fd.append("videoUrl", values.videoUrl);
     fd.append("basePrice", String(values.basePrice));
     fd.append("dailyQuota", String(values.dailyQuota));
-
-    const transport = values.transportationOptions.map(t => t.value).filter(Boolean);
-    fd.append("transportationOptions", JSON.stringify(transport));
+    fd.append("transportationOptions", JSON.stringify(values.transportationOptions.map(t => t.value).filter(Boolean)));
 
     if (category === "parks") {
-      const wl = values.wildlife.map(w => w.value).filter(Boolean);
-      fd.append("wildlife", JSON.stringify(wl));
+      fd.append("wildlife", JSON.stringify(values.wildlife.map(w => w.value).filter(Boolean)));
     }
     if (category === "festivals") {
       fd.append("festivalType", values.festivalType);
@@ -108,11 +127,15 @@ export default function DestinationForm({ category, onSubmit, isLoading, default
     }
 
     imageFiles.forEach(f => fd.append("images", f));
+
+    // Video was pre-uploaded — just send the URL string, no file in this request
+    if (uploadedVideoUrl) fd.append("videoUrl", uploadedVideoUrl);
+
     await onSubmit(fd);
   };
 
-  const inputCls = "w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500";
-  const errorCls = "text-xs text-red-500 mt-1";
+  const inputCls = "w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500";
+  const errCls = "text-xs text-red-500 mt-1";
 
   return (
     <div className="bg-white rounded-xl shadow-sm p-6">
@@ -121,39 +144,39 @@ export default function DestinationForm({ category, onSubmit, isLoading, default
         {STEPS.map((s, i) => (
           <div key={s} className="flex items-center gap-2">
             <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold transition-colors ${
-              i < step ? "bg-emerald-600 text-white" : i === step ? "bg-emerald-600 text-white ring-4 ring-emerald-100" : "bg-gray-200 text-gray-500"
+              i < step ? "bg-green-600 text-white" : i === step ? "bg-green-600 text-white ring-4 ring-green-100" : "bg-gray-200 text-gray-500"
             }`}>
               {i < step ? "✓" : i + 1}
             </div>
-            <span className={`text-sm font-medium ${i === step ? "text-emerald-700" : "text-gray-400"}`}>{s}</span>
-            {i < STEPS.length - 1 && <div className={`flex-1 h-0.5 w-8 ${i < step ? "bg-emerald-600" : "bg-gray-200"}`} />}
+            <span className={`text-sm font-medium ${i === step ? "text-green-700" : "text-gray-400"}`}>{s}</span>
+            {i < STEPS.length - 1 && <div className={`h-0.5 w-8 ${i < step ? "bg-green-600" : "bg-gray-200"}`} />}
           </div>
         ))}
       </div>
 
       <form onSubmit={handleSubmit(handleFormSubmit)}>
+
         {/* ── Step 1: Basic Info ── */}
         {step === 0 && (
           <div className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Name *</label>
               <input {...register("name", { required: "Name is required" })} className={inputCls} placeholder="e.g. Lalibela Rock Churches" />
-              {errors.name && <p className={errorCls}>{errors.name.message}</p>}
+              {errors.name && <p className={errCls}>{errors.name.message}</p>}
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Location *</label>
               <input {...register("location", { required: "Location is required" })} className={inputCls} placeholder="e.g. Lalibela, Amhara Region" />
-              {errors.location && <p className={errorCls}>{errors.location.message}</p>}
+              {errors.location && <p className={errCls}>{errors.location.message}</p>}
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Description *</label>
               <textarea {...register("description", { required: "Description is required" })} rows={4} className={inputCls} placeholder="Describe this destination..." />
-              {errors.description && <p className={errorCls}>{errors.description.message}</p>}
+              {errors.description && <p className={errCls}>{errors.description.message}</p>}
             </div>
 
-            {/* Transportation options */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Transportation Options from Addis Ababa</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Transportation from Addis Ababa</label>
               <div className="space-y-2">
                 {transportFields.map((field, idx) => (
                   <div key={field.id} className="flex gap-2">
@@ -161,13 +184,10 @@ export default function DestinationForm({ category, onSubmit, isLoading, default
                     <button type="button" onClick={() => removeTransport(idx)} className="px-2 text-red-400 hover:text-red-600">✕</button>
                   </div>
                 ))}
-                <button type="button" onClick={() => appendTransport({ value: "" })} className="text-sm text-emerald-600 hover:text-emerald-700 font-medium">
-                  + Add option
-                </button>
+                <button type="button" onClick={() => appendTransport({ value: "" })} className="text-sm text-green-600 font-medium">+ Add option</button>
               </div>
             </div>
 
-            {/* Wildlife for parks */}
             {category === "parks" && (
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Wildlife</label>
@@ -178,14 +198,11 @@ export default function DestinationForm({ category, onSubmit, isLoading, default
                       <button type="button" onClick={() => removeWildlife(idx)} className="px-2 text-red-400 hover:text-red-600">✕</button>
                     </div>
                   ))}
-                  <button type="button" onClick={() => appendWildlife({ value: "" })} className="text-sm text-emerald-600 hover:text-emerald-700 font-medium">
-                    + Add animal
-                  </button>
+                  <button type="button" onClick={() => appendWildlife({ value: "" })} className="text-sm text-green-600 font-medium">+ Add animal</button>
                 </div>
               </div>
             )}
 
-            {/* Festival type */}
             {category === "festivals" && (
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Festival Type</label>
@@ -198,9 +215,10 @@ export default function DestinationForm({ category, onSubmit, isLoading, default
         {/* ── Step 2: Media Upload ── */}
         {step === 1 && (
           <div className="space-y-5">
+            {/* Images */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Images</label>
-              <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:border-emerald-400 transition-colors">
+              <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:border-green-400 transition-colors">
                 <span className="text-2xl mb-1">📷</span>
                 <span className="text-sm text-gray-500">Click to upload images (JPG, PNG, WebP)</span>
                 <input type="file" multiple accept="image/*" onChange={handleImageChange} className="hidden" />
@@ -210,25 +228,48 @@ export default function DestinationForm({ category, onSubmit, isLoading, default
                   {imagePreviews.map((src, i) => (
                     <div key={i} className="relative group">
                       <img src={src} alt="" className="w-full h-20 object-cover rounded-lg" />
-                      <button
-                        type="button"
-                        onClick={() => removeImage(i)}
-                        className="absolute top-1 right-1 bg-red-500 text-white rounded-full w-5 h-5 text-xs flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
-                      >✕</button>
+                      <button type="button" onClick={() => removeImage(i)}
+                        className="absolute top-1 right-1 bg-red-500 text-white rounded-full w-5 h-5 text-xs flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">✕</button>
                     </div>
                   ))}
                 </div>
               )}
             </div>
 
+            {/* Video */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Video URL (YouTube / Vimeo / Cloudinary)</label>
-              <input
-                {...register("videoUrl")}
-                className={inputCls}
-                placeholder="https://www.youtube.com/watch?v=..."
-              />
-              <p className="text-xs text-gray-400 mt-1">Paste a YouTube, Vimeo, or Cloudinary video link. Large files are not stored directly.</p>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Video <span className="text-gray-400 font-normal text-xs">(optional — uploads to Cloudinary before saving)</span>
+              </label>
+
+              {videoUploading && (
+                <div className="flex items-center gap-3 p-3 bg-green-50 border border-green-200 rounded-lg">
+                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-green-600 shrink-0" />
+                  <div>
+                    <p className="text-sm font-medium text-green-700">Uploading to Cloudinary...</p>
+                    <p className="text-xs text-green-500">{videoFile?.name} · {videoFile ? (videoFile.size / (1024 * 1024)).toFixed(1) : 0} MB</p>
+                  </div>
+                </div>
+              )}
+
+              {!videoUploading && uploadedVideoUrl && (
+                <div className="flex items-center gap-3 p-3 bg-green-50 border border-green-200 rounded-lg">
+                  <span className="text-2xl">🎬</span>
+                  <p className="text-sm text-green-700 font-medium flex-1 truncate">Video uploaded ✓</p>
+                  <button type="button" onClick={() => { setUploadedVideoUrl(""); setVideoFile(null); }}
+                    className="text-red-400 hover:text-red-600 text-xs">Remove</button>
+                </div>
+              )}
+
+              {!videoUploading && !uploadedVideoUrl && (
+                <label className="flex flex-col items-center justify-center w-full h-24 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:border-green-400 transition-colors">
+                  <span className="text-2xl mb-1">🎬</span>
+                  <span className="text-sm text-gray-500">Click to upload video (MP4, MOV)</span>
+                  <input type="file" accept="video/mp4,video/quicktime,video/*"
+                    onChange={e => { const f = e.target.files?.[0]; if (f) handleVideoSelect(f); }}
+                    className="hidden" />
+                </label>
+              )}
             </div>
           </div>
         )}
@@ -239,31 +280,20 @@ export default function DestinationForm({ category, onSubmit, isLoading, default
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Base Price (ETB) *</label>
-                <input
-                  type="number"
-                  {...register("basePrice", { required: "Price is required", min: { value: 0, message: "Price cannot be negative" } })}
-                  className={inputCls}
-                  placeholder="500"
-                />
-                {errors.basePrice && <p className={errorCls}>{errors.basePrice.message}</p>}
+                <input type="number" {...register("basePrice", { required: "Price is required", min: { value: 0, message: "Price cannot be negative" } })} className={inputCls} placeholder="500" />
+                {errors.basePrice && <p className={errCls}>{errors.basePrice.message}</p>}
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Default Daily Quota *</label>
-                <input
-                  type="number"
-                  {...register("dailyQuota", {
-                    required: "Quota is required",
-                    min: { value: 1, message: "Quota must be at least 1" },
-                    validate: v => Number.isInteger(Number(v)) || "Quota must be a whole number"
-                  })}
-                  className={inputCls}
-                  placeholder="100"
-                />
-                {errors.dailyQuota && <p className={errorCls}>{errors.dailyQuota.message}</p>}
+                <input type="number" {...register("dailyQuota", {
+                  required: "Quota is required",
+                  min: { value: 1, message: "Quota must be at least 1" },
+                  validate: v => Number.isInteger(Number(v)) || "Quota must be a whole number"
+                })} className={inputCls} placeholder="100" />
+                {errors.dailyQuota && <p className={errCls}>{errors.dailyQuota.message}</p>}
               </div>
             </div>
 
-            {/* Festival-specific date management */}
             {category === "festivals" && (
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Festival Dates & Quotas</label>
@@ -287,13 +317,8 @@ export default function DestinationForm({ category, onSubmit, isLoading, default
                       </div>
                     </div>
                   ))}
-                  <button
-                    type="button"
-                    onClick={() => appendFestivalDate({ date: "", availableQuota: 100, eventName: "" })}
-                    className="text-sm text-emerald-600 hover:text-emerald-700 font-medium"
-                  >
-                    + Add festival date
-                  </button>
+                  <button type="button" onClick={() => appendFestivalDate({ date: "", availableQuota: 100, eventName: "" })}
+                    className="text-sm text-green-600 font-medium">+ Add festival date</button>
                 </div>
               </div>
             )}
@@ -302,29 +327,19 @@ export default function DestinationForm({ category, onSubmit, isLoading, default
 
         {/* Navigation */}
         <div className="flex justify-between mt-8 pt-4 border-t border-gray-100">
-          <button
-            type="button"
-            onClick={() => setStep(s => s - 1)}
-            disabled={step === 0}
-            className="px-5 py-2 border border-gray-300 text-sm font-medium rounded-lg hover:bg-gray-50 disabled:opacity-40"
-          >
+          <button type="button" onClick={() => setStep(s => s - 1)} disabled={step === 0}
+            className="px-5 py-2 border border-gray-300 text-sm font-medium rounded-lg hover:bg-gray-50 disabled:opacity-40">
             Back
           </button>
           {step < STEPS.length - 1 ? (
-            <button
-              type="button"
-              onClick={nextStep}
-              className="px-5 py-2 bg-emerald-600 text-white text-sm font-medium rounded-lg hover:bg-emerald-700"
-            >
+            <button type="button" onClick={nextStep}
+              className="px-5 py-2 bg-green-600 text-white text-sm font-medium rounded-lg hover:bg-green-700">
               Next
             </button>
           ) : (
-            <button
-              type="submit"
-              disabled={isLoading}
-              className="px-5 py-2 bg-emerald-600 text-white text-sm font-medium rounded-lg hover:bg-emerald-700 disabled:opacity-50"
-            >
-              {isLoading ? "Saving..." : "Save Destination"}
+            <button type="submit" disabled={isLoading || videoUploading}
+              className="px-5 py-2 bg-green-600 text-white text-sm font-medium rounded-lg hover:bg-green-700 disabled:opacity-50">
+              {videoUploading ? "Uploading video..." : isLoading ? "Saving..." : "Save Destination"}
             </button>
           )}
         </div>

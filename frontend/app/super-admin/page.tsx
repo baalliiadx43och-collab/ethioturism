@@ -37,7 +37,7 @@ export default function SuperAdminOverviewPage() {
           label="Total Users"
           value={overview.users.total}
           icon="🧑‍🤝‍🧑"
-          color="bg-blue-50"
+          color="bg-green-50"
           sub={`${overview.users.newToday} new today`}
         />
         <StatCard
@@ -51,7 +51,7 @@ export default function SuperAdminOverviewPage() {
           label="Total Admins"
           value={overview.admins.total}
           icon="👤"
-          color="bg-purple-50"
+          color="bg-green-50"
           sub={`${overview.admins.active} active`}
         />
         <StatCard

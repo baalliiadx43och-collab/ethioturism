@@ -115,7 +115,7 @@ export default function ManageUsersPage() {
                       </button>
                       <button
                         onClick={() => setResetTarget(user)}
-                        className="px-2.5 py-1 rounded text-xs font-medium bg-blue-100 text-blue-700 hover:bg-blue-200 transition-colors"
+                        className="px-2.5 py-1 rounded text-xs font-medium bg-green-100 text-green-700 hover:bg-green-200 transition-colors"
                       >
                         Reset PW
                       </button>
@@ -179,7 +179,7 @@ export default function ManageUsersPage() {
                   Cancel
                 </button>
                 <button type="submit" disabled={resetting}
-                  className="flex-1 px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 disabled:opacity-50">
+                  className="flex-1 px-4 py-2 bg-green-600 text-white text-sm font-medium rounded-lg hover:bg-green-700 disabled:opacity-50">
                   {resetting ? "Resetting..." : "Reset"}
                 </button>
               </div>

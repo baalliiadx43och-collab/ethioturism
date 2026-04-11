@@ -50,10 +50,14 @@ export default function EditDestinationPage() {
           videoUrl: item.videoUrl,
           basePrice: item.basePrice,
           dailyQuota: item.dailyQuota,
-          transportationOptions: item.transportationOptions,
-          wildlife: item.wildlife,
+          transportationOptions: item.transportationOptions.map(v => ({ value: v })),
+          wildlife: item.wildlife?.map(v => ({ value: v })),
           festivalType: item.festivalType,
-          festivalDates: item.festivalDates,
+          festivalDates: item.festivalDates?.map(fd => ({
+            date: fd.date,
+            availableQuota: fd.availableQuota,
+            eventName: fd.eventName ?? "",
+          })),
         }}
       />
     </div>

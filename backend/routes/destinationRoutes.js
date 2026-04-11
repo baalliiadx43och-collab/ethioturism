@@ -12,16 +12,16 @@ router.use(protect);
 router.use(authorize('ADMIN', 'SUPER_ADMIN'));
 
 // Standalone media upload
-router.post('/upload', upload.array('files', 10), uploadMedia);
+router.post('/upload', upload.fields([{ name: 'files', maxCount: 10 }]), uploadMedia);
 
 // Category-based CRUD  (:category = historical | parks | festivals)
 router.route('/:category')
   .get(getAll)
-  .post(upload.array('images', 10), create);
+  .post(upload.fields([{ name: 'images', maxCount: 10 }, { name: 'video', maxCount: 1 }]), create);
 
 router.route('/:category/:id')
   .get(getOne)
-  .patch(upload.array('images', 10), update)
+  .patch(upload.fields([{ name: 'images', maxCount: 10 }, { name: 'video', maxCount: 1 }]), update)
   .delete(remove);
 
 // Quota management
