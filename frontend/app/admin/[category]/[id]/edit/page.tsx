@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import {
@@ -8,11 +9,13 @@ import {
   Category,
 } from "@/store/slices/destinationApiSlice";
 import DestinationForm from "@/components/admin/DestinationForm";
+import { Toast } from "@/components/shared/Modal";
 
 export default function EditDestinationPage() {
   const { category, id } = useParams<{ category: string; id: string }>();
   const cat = category as Category;
   const router = useRouter();
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   const { data, isLoading } = useGetDestinationQuery({ category: cat, id });
   const [updateDestination, { isLoading: updating }] = useUpdateDestinationMutation();
@@ -22,12 +25,16 @@ export default function EditDestinationPage() {
       await updateDestination({ category: cat, id, data: formData }).unwrap();
       router.push(`/admin/${cat}/${id}`);
     } catch (err: any) {
-      alert(err?.data?.message || "Failed to update destination");
+      setErrorMsg(err?.data?.message || "Failed to update destination");
     }
   };
 
   if (isLoading) {
-    return <div className="flex justify-center py-16"><div className="animate-spin rounded-full h-10 w-10 border-b-2 border-emerald-600" /></div>;
+    return (
+      <div className="flex justify-center py-16">
+        <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-emerald-600" />
+      </div>
+    );
   }
 
   const item = data?.item;
@@ -60,6 +67,10 @@ export default function EditDestinationPage() {
           })),
         }}
       />
+
+      {errorMsg && (
+        <Toast message={errorMsg} type="error" onClose={() => setErrorMsg(null)} />
+      )}
     </div>
   );
 }

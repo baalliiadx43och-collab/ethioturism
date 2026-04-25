@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useForm, useFieldArray } from "react-hook-form";
 import { Category, useUploadMediaMutation } from "@/store/slices/destinationApiSlice";
+import { Toast } from "@/components/shared/Modal";
 
 interface FormValues {
   name: string;
@@ -43,6 +44,7 @@ export default function DestinationForm({ category, onSubmit, isLoading, default
   const [videoFile, setVideoFile] = useState<File | null>(null);
   const [uploadedVideoUrl, setUploadedVideoUrl] = useState<string>(defaultValues?.videoUrl ?? "");
   const [videoUploading, setVideoUploading] = useState(false);
+  const [videoErrorMsg, setVideoErrorMsg] = useState<string | null>(null);
 
   const [uploadMedia] = useUploadMediaMutation();
 
@@ -91,7 +93,7 @@ export default function DestinationForm({ category, onSubmit, isLoading, default
       const result = await uploadMedia(fd).unwrap();
       setUploadedVideoUrl(result.files[0]?.url ?? "");
     } catch {
-      alert("Video upload failed. Please try a smaller file or check your connection.");
+      setVideoErrorMsg("Video upload failed. Please try a smaller file or check your connection.");
       setVideoFile(null);
       setUploadedVideoUrl("");
     } finally {
@@ -377,6 +379,10 @@ export default function DestinationForm({ category, onSubmit, isLoading, default
           )}
         </div>
       </form>
+
+      {videoErrorMsg && (
+        <Toast message={videoErrorMsg} type="error" onClose={() => setVideoErrorMsg(null)} />
+      )}
     </div>
   );
 }

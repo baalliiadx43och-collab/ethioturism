@@ -1,9 +1,11 @@
 "use client";
 
+import { useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { useCreateDestinationMutation, Category } from "@/store/slices/destinationApiSlice";
 import DestinationForm from "@/components/admin/DestinationForm";
+import { Toast } from "@/components/shared/Modal";
 
 const LABELS: Record<string, string> = {
   historical: "Historical Site",
@@ -16,13 +18,14 @@ export default function NewDestinationPage() {
   const cat = category as Category;
   const router = useRouter();
   const [createDestination, { isLoading }] = useCreateDestinationMutation();
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   const handleSubmit = async (data: FormData) => {
     try {
       await createDestination({ category: cat, data }).unwrap();
       router.push(`/admin/${cat}`);
     } catch (err: any) {
-      alert(err?.data?.message || "Failed to create destination");
+      setErrorMsg(err?.data?.message || "Failed to create destination");
     }
   };
 
@@ -33,6 +36,10 @@ export default function NewDestinationPage() {
         <h1 className="text-2xl font-bold text-gray-900">Add {LABELS[cat]}</h1>
       </div>
       <DestinationForm category={cat} onSubmit={handleSubmit} isLoading={isLoading} />
+
+      {errorMsg && (
+        <Toast message={errorMsg} type="error" onClose={() => setErrorMsg(null)} />
+      )}
     </div>
   );
 }
