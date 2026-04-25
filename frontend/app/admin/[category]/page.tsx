@@ -22,7 +22,7 @@ export default function DestinationListPage() {
 
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
-  const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
+  const [confirmDelete, setConfirmDelete] = useState<number | null>(null);
 
   const { data, isLoading, isFetching } = useGetDestinationsQuery({ category: cat, search, page });
   const [deleteDestination] = useDeleteDestinationMutation();
@@ -71,7 +71,7 @@ export default function DestinationListPage() {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
           {data?.items.map((item) => (
             <DestinationCard
-              key={item._id}
+              key={item.id}
               item={item}
               category={cat}
               onDelete={(id) => setConfirmDelete(id)}

@@ -29,7 +29,7 @@ export default function AdminSidebar() {
   };
 
   return (
-    <aside className="w-64 bg-white flex flex-col shrink-0 border-r border-gray-100 shadow-sm">
+    <aside className="w-64 bg-white flex flex-col shrink-0 border-r border-gray-100 shadow-sm sticky top-0 h-screen">
       {/* Brand */}
       <div className="px-6 py-5 border-b border-gray-100">
         <div className="flex items-center gap-2 mb-1">

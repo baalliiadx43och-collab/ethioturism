@@ -1,12 +1,12 @@
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
 
 const baseUrl =
-  process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:5000/api/v1";
+  process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api/v1";
 
 export type Category = "historical" | "parks" | "festivals";
 
 export interface PublicDestination {
-  _id: string;
+  id: number;
   name: string;
   location: string;
   description: string;

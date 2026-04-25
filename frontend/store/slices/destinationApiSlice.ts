@@ -2,7 +2,7 @@ import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
 import { RootState } from "../store";
 
 const baseUrl =
-  process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:5000/api/v1";
+  process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api/v1";
 
 export type Category = "historical" | "parks" | "festivals";
 
@@ -13,7 +13,7 @@ export interface QuotaDate {
 }
 
 export interface Destination {
-  _id: string;
+  id: number;
   name: string;
   location: string;
   description: string;
@@ -27,7 +27,7 @@ export interface Destination {
   wildlife?: string[];
   festivalType?: string;
   isActive: boolean;
-  createdBy: { fullName: string };
+  creator?: { fullName: string };
   createdAt: string;
 }
 
@@ -59,11 +59,17 @@ export const destinationApi = createApi({
         `/${category}?search=${search}&page=${page}&limit=12`,
       providesTags: ["Destinations"],
     }),
-    getDestination: builder.query<{ success: boolean; item: Destination }, { category: Category; id: string }>({
+    getDestination: builder.query<
+      { success: boolean; item: Destination },
+      { category: Category; id: string }
+    >({
       query: ({ category, id }) => `/${category}/${id}`,
       providesTags: ["Destinations"],
     }),
-    createDestination: builder.mutation<{ success: boolean; item: Destination }, { category: Category; data: FormData }>({
+    createDestination: builder.mutation<
+      { success: boolean; item: Destination },
+      { category: Category; data: FormData }
+    >({
       query: ({ category, data }) => ({
         url: `/${category}`,
         method: "POST",
@@ -71,7 +77,10 @@ export const destinationApi = createApi({
       }),
       invalidatesTags: ["Destinations"],
     }),
-    updateDestination: builder.mutation<{ success: boolean; item: Destination }, { category: Category; id: string; data: FormData | Partial<Destination> }>({
+    updateDestination: builder.mutation<
+      { success: boolean; item: Destination },
+      { category: Category; id: string | number; data: FormData | Partial<Destination> }
+    >({
       query: ({ category, id, data }) => ({
         url: `/${category}/${id}`,
         method: "PATCH",
@@ -79,11 +88,17 @@ export const destinationApi = createApi({
       }),
       invalidatesTags: ["Destinations"],
     }),
-    deleteDestination: builder.mutation<{ success: boolean }, { category: Category; id: string }>({
+    deleteDestination: builder.mutation<
+      { success: boolean },
+      { category: Category; id: string | number }
+    >({
       query: ({ category, id }) => ({ url: `/${category}/${id}`, method: "DELETE" }),
       invalidatesTags: ["Destinations"],
     }),
-    updateQuota: builder.mutation<{ success: boolean; item: Destination }, { category: Category; id: string; date: string; availableQuota: number; eventName?: string }>({
+    updateQuota: builder.mutation<
+      { success: boolean; item: Destination },
+      { category: Category; id: string | number; date: string; availableQuota: number; eventName?: string }
+    >({
       query: ({ category, id, ...body }) => ({
         url: `/${category}/${id}/quota`,
         method: "PATCH",
@@ -91,11 +106,17 @@ export const destinationApi = createApi({
       }),
       invalidatesTags: ["Destinations"],
     }),
-    getBookings: builder.query<any, { category: Category; id: string; page?: number; status?: string; date?: string }>({
+    getBookings: builder.query<
+      any,
+      { category: Category; id: string | number; page?: number; status?: string; date?: string }
+    >({
       query: ({ category, id, page = 1, status = "", date = "" }) =>
         `/${category}/${id}/bookings?page=${page}&status=${status}&date=${date}`,
     }),
-    uploadMedia: builder.mutation<{ success: boolean; files: { url: string; type: string }[] }, FormData>({
+    uploadMedia: builder.mutation<
+      { success: boolean; files: { url: string; type: string }[] },
+      FormData
+    >({
       query: (data) => ({ url: "/upload", method: "POST", body: data }),
     }),
   }),

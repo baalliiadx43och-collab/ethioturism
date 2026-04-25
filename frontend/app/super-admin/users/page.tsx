@@ -22,14 +22,14 @@ export default function ManageUsersPage() {
 
   const handleToggleStatus = async (user: AdminUser) => {
     const newStatus = user.status === "ACTIVE" ? "BLOCKED" : "ACTIVE";
-    await updateStatus({ id: user._id, status: newStatus });
+    await updateStatus({ id: user.id, status: newStatus });
   };
 
   const handleResetPassword = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!resetTarget || newPassword.length < 6) return;
     try {
-      await resetPassword({ id: resetTarget._id, newPassword }).unwrap();
+      await resetPassword({ id: resetTarget.id, newPassword }).unwrap();
       setResetMsg("Password reset successfully.");
       setTimeout(() => { setResetTarget(null); setNewPassword(""); setResetMsg(""); }, 1500);
     } catch (err: any) {
@@ -85,15 +85,13 @@ export default function ManageUsersPage() {
             </thead>
             <tbody className="divide-y divide-gray-100">
               {data?.users.map((user) => (
-                <tr key={user._id} className="hover:bg-gray-50 transition-colors">
+                <tr key={user.id} className="hover:bg-gray-50 transition-colors">
                   <td className="px-4 py-3 font-medium text-gray-900">{user.fullName}</td>
                   <td className="px-4 py-3 text-gray-600">{user.email}</td>
                   <td className="px-4 py-3 text-gray-600">{user.phone}</td>
                   <td className="px-4 py-3">
                     <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
-                      user.status === "ACTIVE"
-                        ? "bg-green-100 text-green-700"
-                        : "bg-red-100 text-red-700"
+                      user.status === "ACTIVE" ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"
                     }`}>
                       {user.status}
                     </span>
@@ -155,7 +153,9 @@ export default function ManageUsersPage() {
               </p>
               {resetMsg && (
                 <div className={`px-3 py-2 rounded text-sm ${
-                  resetMsg.includes("success") ? "bg-green-50 text-green-700 border border-green-300" : "bg-red-50 text-red-700 border border-red-300"
+                  resetMsg.includes("success")
+                    ? "bg-green-50 text-green-700 border border-green-300"
+                    : "bg-red-50 text-red-700 border border-red-300"
                 }`}>
                   {resetMsg}
                 </div>

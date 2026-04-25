@@ -184,7 +184,7 @@ export default function UserLayout({
           className={`
             fixed top-16 left-0 bottom-0 z-40 w-64 bg-white shadow-2xl overflow-y-auto
             transform transition-transform duration-300 flex flex-col
-            md:static md:shadow-none md:w-56 md:translate-x-0 md:flex-shrink-0 md:rounded-2xl md:border md:border-gray-100
+            md:sticky md:top-6 md:h-[calc(100vh-7.5rem)] md:shadow-none md:w-56 md:translate-x-0 md:flex-shrink-0 md:rounded-2xl md:border md:border-gray-100
             ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}
           `}
         >

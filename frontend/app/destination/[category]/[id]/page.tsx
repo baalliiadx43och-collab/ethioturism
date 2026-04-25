@@ -8,6 +8,7 @@ import { useGetPublicDestinationQuery } from "@/store/slices/publicDestinationAp
 import {
   useCheckAvailabilityQuery,
   useCreateBookingMutation,
+  useGetDestinationSummaryQuery,
 } from "@/store/slices/bookingApiSlice";
 import {
   MapPin, Bus, Plane, Car, Clock, Users, CalendarDays,
@@ -39,6 +40,11 @@ export default function DestinationDetailPage() {
 
   const { data, isLoading, isError } = useGetPublicDestinationQuery({ category, id });
   const destination = data?.item;
+
+  const { data: summary } = useGetDestinationSummaryQuery(
+    { category, destinationId: id },
+    { skip: !id }
+  );
 
   const [imgIndex, setImgIndex] = useState(0);
   const today = toDateInput(new Date());
@@ -178,26 +184,93 @@ export default function DestinationDetailPage() {
             <div className="text-right">
               <p className="text-xs text-gray-400">Starting from</p>
               <p className="text-2xl font-bold text-green-700">
-                {destination.basePrice.toLocaleString()} ETB
+                {parseFloat(String(destination.basePrice)).toLocaleString()} ETB
               </p>
               <p className="text-xs text-gray-400">per person</p>
             </div>
           </div>
 
-          {/* Description */}
-          <div className="mt-6">
-            <h2 className="text-lg font-semibold text-gray-800 mb-2">About</h2>
-            <p className="text-gray-600 leading-relaxed text-sm">{destination.description}</p>
+          {/* Daily Quota Info */}
+          <div className="mt-4 p-4 bg-gradient-to-r from-blue-50 to-cyan-50 border border-blue-200 rounded-xl shadow-sm">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-blue-100 rounded-lg">
+                <Users size={20} className="text-blue-600" />
+              </div>
+              <div className="flex-1">
+                <p className="text-sm font-semibold text-blue-900">Daily Capacity</p>
+                <p className="text-sm text-blue-700 mt-0.5">
+                  <span className="font-bold text-lg">{destination.dailyQuota}</span> <span className="text-xs">visitors per day</span>
+                </p>
+              </div>
+              {summary && summary.totalBooked > 0 && (
+                <div className="text-right">
+                  <p className="text-xs text-gray-500">Total Booked</p>
+                  <p className="text-lg font-bold text-orange-600">{summary.totalBooked}</p>
+                </div>
+              )}
+            </div>
           </div>
+
+          {/* Description */}
+          <div className="mt-6 bg-gradient-to-br from-green-50 to-blue-50 rounded-2xl p-6 border border-green-100">
+            <h2 className="text-2xl font-bold text-gray-900 mb-4 flex items-center gap-2">
+              <span className="text-2xl">✨</span>
+              Discover {destination.name}
+            </h2>
+            <div className="text-gray-700 leading-relaxed space-y-4">
+              {destination.description.split('\n').map((paragraph, idx) => {
+                // Check if line starts with a bold heading pattern (text followed by colon)
+                const headingMatch = paragraph.match(/^([^:]+):\s*(.+)$/);
+                if (headingMatch) {
+                  return (
+                    <div key={idx} className="bg-white/60 backdrop-blur-sm rounded-xl p-4 border border-white/80 shadow-sm">
+                      <h3 className="text-base font-bold text-green-800 mb-2 flex items-center gap-2">
+                        <span className="w-1.5 h-1.5 bg-green-600 rounded-full"></span>
+                        {headingMatch[1]}
+                      </h3>
+                      <p className="text-sm text-gray-700 leading-relaxed pl-3.5">{headingMatch[2]}</p>
+                    </div>
+                  );
+                }
+                // Regular paragraph
+                return paragraph.trim() ? (
+                  <p key={idx} className="text-sm text-gray-700 leading-relaxed">{paragraph}</p>
+                ) : null;
+              })}
+            </div>
+          </div>
+
+          {/* Video Tour */}
+          {destination.videoUrl && (
+            <div className="mt-6 bg-gradient-to-br from-purple-50 to-pink-50 rounded-2xl p-6 border border-purple-100">
+              <h2 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
+                <span className="text-2xl">🎬</span>
+                Video Tour
+              </h2>
+              <div className="relative rounded-xl overflow-hidden shadow-lg">
+                <video
+                  src={destination.videoUrl}
+                  controls
+                  className="w-full max-h-96 bg-black"
+                  poster={images[0] || undefined}
+                >
+                  Your browser does not support the video tag.
+                </video>
+              </div>
+            </div>
+          )}
 
           {/* Wildlife */}
           {destination.wildlife && destination.wildlife.length > 0 && (
-            <div className="mt-6">
-              <h2 className="text-lg font-semibold text-gray-800 mb-3">Wildlife</h2>
+            <div className="mt-6 bg-gradient-to-br from-emerald-50 to-teal-50 rounded-2xl p-6 border border-emerald-100">
+              <h2 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
+                <span className="text-2xl">🦁</span>
+                Wildlife & Nature
+              </h2>
               <div className="flex flex-wrap gap-2">
                 {destination.wildlife.map((w) => (
-                  <span key={w} className="px-3 py-1 bg-green-50 text-green-700 text-sm rounded-full">
-                    {w}
+                  <span key={w} className="px-4 py-2 bg-white text-emerald-700 text-sm font-medium rounded-full shadow-sm border border-emerald-200 hover:shadow-md transition-shadow">
+                    🌿 {w}
                   </span>
                 ))}
               </div>
@@ -206,18 +279,35 @@ export default function DestinationDetailPage() {
 
           {/* Transport */}
           {destination.transportationOptions?.length > 0 && (
-            <div className="mt-6">
-              <h2 className="text-lg font-semibold text-gray-800 mb-3">
+            <div className="mt-6 bg-gradient-to-br from-amber-50 to-orange-50 rounded-2xl p-6 border border-amber-100">
+              <h2 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
+                <span className="text-2xl">🚗</span>
                 Getting There from Addis Ababa
               </h2>
               <div className="space-y-3">
-                {destination.transportationOptions.map((opt, i) => (
-                  <div key={i} className="flex items-start gap-3 p-4 bg-white rounded-xl border border-gray-100 shadow-sm">
-                    <div className="mt-0.5"><TransportIcon option={opt} /></div>
-                    <p className="flex-1 text-sm text-gray-700">{opt}</p>
-                    <Clock size={14} className="text-gray-300 mt-0.5 flex-shrink-0" />
-                  </div>
-                ))}
+                {destination.transportationOptions.map((opt, i) => {
+                  // Check if option starts with a method like "By Air:", "By Bus:", etc.
+                  const methodMatch = opt.match(/^(By [^:]+):\s*(.+)$/s);
+                  
+                  return (
+                    <div key={i} className="flex items-start gap-3 p-4 bg-white rounded-xl border border-amber-200 shadow-sm hover:shadow-md transition-shadow">
+                      <div className="mt-0.5 p-2 bg-green-100 rounded-lg">
+                        <TransportIcon option={opt} />
+                      </div>
+                      <div className="flex-1">
+                        {methodMatch ? (
+                          <>
+                            <p className="font-bold text-gray-900 text-sm mb-1.5">{methodMatch[1]}</p>
+                            <p className="text-sm text-gray-600 leading-relaxed">{methodMatch[2]}</p>
+                          </>
+                        ) : (
+                          <p className="text-sm text-gray-700">{opt}</p>
+                        )}
+                      </div>
+                      <Clock size={16} className="text-amber-400 mt-0.5 flex-shrink-0" />
+                    </div>
+                  );
+                })}
               </div>
             </div>
           )}
@@ -298,12 +388,12 @@ export default function DestinationDetailPage() {
                           Checking availability...
                         </div>
                       ) : availability ? (
-                        <div className={`flex items-center gap-2 text-xs font-medium px-3 py-2 rounded-lg ${
+                        <div className={`flex items-center gap-2 text-sm font-medium px-3 py-2.5 rounded-lg ${
                           availability.available ? "bg-green-50 text-green-700" : "bg-red-50 text-red-600"
                         }`}>
                           {availability.available
-                            ? <><CheckCircle2 size={13} /> {availability.remaining} spot{availability.remaining !== 1 ? "s" : ""} available</>
-                            : <><AlertCircle size={13} /> Fully booked for this date</>
+                            ? <><CheckCircle2 size={16} /> <span className="font-bold">{availability.remaining}</span> of <span className="font-bold">{availability.quota}</span> spot{availability.remaining !== 1 ? "s" : ""} left</>
+                            : <><AlertCircle size={16} /> Fully booked (<span className="font-bold">{availability.quota}</span> total quota)</>
                           }
                         </div>
                       ) : null}
@@ -313,9 +403,9 @@ export default function DestinationDetailPage() {
                   {/* Price summary */}
                   <div className="mb-4 p-3 bg-gray-50 rounded-xl">
                     <div className="flex justify-between text-sm text-gray-600">
-                      <span>{destination.basePrice.toLocaleString()} ETB × {numberOfPeople}</span>
+                      <span>{parseFloat(String(destination.basePrice)).toLocaleString()} ETB × {numberOfPeople}</span>
                       <span className="font-semibold text-gray-900">
-                        {(destination.basePrice * numberOfPeople).toLocaleString()} ETB
+                        {(parseFloat(String(destination.basePrice)) * numberOfPeople).toLocaleString()} ETB
                       </span>
                     </div>
                   </div>

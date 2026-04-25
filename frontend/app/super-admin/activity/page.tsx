@@ -42,7 +42,7 @@ export default function ActivityFeedPage() {
         ) : (
           <div className="space-y-1">
             {data?.logs.map((log) => (
-              <ActivityFeedItem key={log._id} log={log} />
+              <ActivityFeedItem key={log.id} log={log} />
             ))}
           </div>
         )}

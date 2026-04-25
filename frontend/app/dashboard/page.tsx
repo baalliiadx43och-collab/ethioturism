@@ -177,8 +177,8 @@ export default function DashboardPage() {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
           {data.items.map((dest) => (
             <Link
-              key={dest._id}
-              href={`/destination/${dest.category}/${dest._id}`}
+              key={dest.id}
+              href={`/destination/${dest.category}/${dest.id}`}
               className="group bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 border border-gray-100 hover:border-green-200"
             >
               <div className="relative h-52 bg-gray-200 overflow-hidden">
@@ -217,7 +217,7 @@ export default function DashboardPage() {
                   <div>
                     <span className="text-xs text-gray-400 block">Starting from</span>
                     <p className="text-green-700 font-bold text-lg">
-                      {dest.basePrice.toLocaleString()} <span className="text-sm">ETB</span>
+                      {parseFloat(String(dest.basePrice)).toLocaleString()} <span className="text-sm">ETB</span>
                     </p>
                   </div>
                   <div className="flex items-center gap-1.5 text-xs px-4 py-2 bg-green-50 text-green-700 rounded-full font-semibold group-hover:bg-green-600 group-hover:text-white transition-colors">

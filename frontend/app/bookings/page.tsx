@@ -43,11 +43,11 @@ export default function BookingsPage() {
     skip: !mounted || !isAuthenticated,
   });
   const [cancelBooking, { isLoading: cancelling }] = useCancelBookingMutation();
-  const [cancellingId, setCancellingId] = useState<string | null>(null);
+  const [cancellingId, setCancellingId] = useState<number | null>(null);
 
   if (!mounted || !isAuthenticated) return null;
 
-  const handleCancel = async (id: string) => {
+  const handleCancel = async (id: number) => {
     if (!confirm("Are you sure you want to cancel this booking?")) return;
     setCancellingId(id);
     try { await cancelBooking(id).unwrap(); } catch {}
@@ -63,7 +63,7 @@ export default function BookingsPage() {
   ).length || 0;
 
   const totalSpent = data?.bookings?.filter(b => b.status !== "CANCELLED")
-    .reduce((sum, b) => sum + b.totalPrice, 0) || 0;
+    .reduce((sum, b) => sum + parseFloat(String(b.totalPrice)), 0) || 0;
 
   const confirmedCount = data?.bookings?.filter(b => b.status === "CONFIRMED").length || 0;
 
@@ -163,7 +163,7 @@ export default function BookingsPage() {
             
             return (
               <div
-                key={b._id}
+                key={b.id}
                 className={`bg-white rounded-2xl border shadow-sm p-5 transition-all hover:shadow-md ${
                   isUpcoming ? "border-green-200 bg-green-50/30" : "border-gray-100"
                 }`}
@@ -217,7 +217,7 @@ export default function BookingsPage() {
                         <div>
                           <p className="text-xs text-gray-400">Total Price</p>
                           <p className="font-bold text-green-700">
-                            {b.totalPrice.toLocaleString()} ETB
+                            {parseFloat(String(b.totalPrice)).toLocaleString()} ETB
                           </p>
                         </div>
                       </div>
@@ -241,11 +241,11 @@ export default function BookingsPage() {
                   </div>
                   {b.status !== "CANCELLED" && (
                     <button
-                      onClick={() => handleCancel(b._id)}
-                      disabled={cancelling && cancellingId === b._id}
+                      onClick={() => handleCancel(b.id)}
+                      disabled={cancelling && cancellingId === b.id}
                       className="flex items-center gap-2 text-sm text-red-600 hover:text-red-700 border border-red-200 hover:border-red-300 hover:bg-red-50 px-4 py-2 rounded-lg transition-colors disabled:opacity-50 font-medium"
                     >
-                      {cancelling && cancellingId === b._id ? (
+                      {cancelling && cancellingId === b.id ? (
                         <>
                           <Loader2 size={14} className="animate-spin" />
                           Cancelling...

@@ -51,7 +51,7 @@ export default function DestinationForm({ category, onSubmit, isLoading, default
       name: defaultValues?.name ?? "",
       location: defaultValues?.location ?? "",
       description: defaultValues?.description ?? "",
-      basePrice: defaultValues?.basePrice ?? 0,
+      basePrice: defaultValues?.basePrice ?? undefined,
       dailyQuota: defaultValues?.dailyQuota ?? 50,
       transportationOptions: defaultValues?.transportationOptions?.map((v: string) => ({ value: v })) ?? [{ value: "" }],
       wildlife: defaultValues?.wildlife?.map((v: string) => ({ value: v })) ?? [{ value: "" }],      festivalType: defaultValues?.festivalType ?? "",
@@ -171,17 +171,39 @@ export default function DestinationForm({ category, onSubmit, isLoading, default
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Description *</label>
-              <textarea {...register("description", { required: "Description is required" })} rows={4} className={inputCls} placeholder="Describe this destination..." />
+              <div className="mb-2 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                <p className="text-xs text-blue-800 font-medium mb-1">💡 Formatting Tips:</p>
+                <p className="text-xs text-blue-600">
+                  Use <strong>bold headings</strong> followed by descriptions. Example:<br/>
+                  <code className="bg-white px-1 py-0.5 rounded text-blue-700">
+                    Rock-Hewn Churches: Description here...<br/>
+                    Architecture: More details...<br/>
+                    Living Shrine: Additional info...
+                  </code>
+                </p>
+              </div>
+              <textarea 
+                {...register("description", { required: "Description is required" })} 
+                rows={12} 
+                className={inputCls} 
+                placeholder="Example:&#10;&#10;Rock-Hewn Churches: The churches are divided into two main clusters—northern and southeastern—separated by the 'Jordan River,' with the cross-shaped Bete Giyorgis standing in isolation.&#10;&#10;Architecture: These structures were not built with blocks but were chiseled directly into the volcanic basaltic rock, featuring complex drainage systems.&#10;&#10;Living Shrine: Unlike many historical ruins, this remains an active center of worship where ancient rituals are still practiced today." 
+              />
               {errors.description && <p className={errCls}>{errors.description.message}</p>}
             </div>
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Transportation from Addis Ababa</label>
+              <p className="text-xs text-gray-500 mb-2">Add detailed transportation options (e.g., "By Air: Ethiopian Airlines operates daily flights...")</p>
               <div className="space-y-2">
                 {transportFields.map((field, idx) => (
                   <div key={field.id} className="flex gap-2">
-                    <input {...register(`transportationOptions.${idx}.value`)} className={inputCls} placeholder="e.g. Ethiopian Airlines flight" />
-                    <button type="button" onClick={() => removeTransport(idx)} className="px-2 text-red-400 hover:text-red-600">✕</button>
+                    <textarea 
+                      {...register(`transportationOptions.${idx}.value`)} 
+                      className={inputCls} 
+                      rows={2}
+                      placeholder="e.g., By Air (Recommended): Ethiopian Airlines operates daily direct flights from Addis Ababa. Flight takes 1 hour. Airport is 23 km from town center." 
+                    />
+                    <button type="button" onClick={() => removeTransport(idx)} className="px-2 text-red-400 hover:text-red-600 self-start mt-2">✕</button>
                   </div>
                 ))}
                 <button type="button" onClick={() => appendTransport({ value: "" })} className="text-sm text-green-600 font-medium">+ Add option</button>
@@ -280,7 +302,17 @@ export default function DestinationForm({ category, onSubmit, isLoading, default
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Base Price (ETB) *</label>
-                <input type="number" {...register("basePrice", { required: "Price is required", min: { value: 0, message: "Price cannot be negative" } })} className={inputCls} placeholder="500" />
+                <input 
+                  type="number" 
+                  step="0.01"
+                  {...register("basePrice", { 
+                    required: "Price is required", 
+                    min: { value: 1, message: "Price must be at least 1 ETB" },
+                    valueAsNumber: true
+                  })} 
+                  className={inputCls} 
+                  placeholder="500" 
+                />
                 {errors.basePrice && <p className={errCls}>{errors.basePrice.message}</p>}
               </div>
               <div>
@@ -288,6 +320,7 @@ export default function DestinationForm({ category, onSubmit, isLoading, default
                 <input type="number" {...register("dailyQuota", {
                   required: "Quota is required",
                   min: { value: 1, message: "Quota must be at least 1" },
+                  valueAsNumber: true,
                   validate: v => Number.isInteger(Number(v)) || "Quota must be a whole number"
                 })} className={inputCls} placeholder="100" />
                 {errors.dailyQuota && <p className={errCls}>{errors.dailyQuota.message}</p>}

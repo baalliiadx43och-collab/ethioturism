@@ -48,10 +48,10 @@ export default function EditDestinationPage() {
           location: item.location,
           description: item.description,
           videoUrl: item.videoUrl,
-          basePrice: item.basePrice,
+          basePrice: parseFloat(String(item.basePrice)),
           dailyQuota: item.dailyQuota,
-          transportationOptions: item.transportationOptions.map(v => ({ value: v })),
-          wildlife: item.wildlife?.map(v => ({ value: v })),
+          transportationOptions: item.transportationOptions,
+          wildlife: item.wildlife,
           festivalType: item.festivalType,
           festivalDates: item.festivalDates?.map(fd => ({
             date: fd.date,

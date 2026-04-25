@@ -11,6 +11,7 @@ import {
   useGetBookingsQuery,
   Category,
 } from "@/store/slices/destinationApiSlice";
+import { useGetDestinationSummaryQuery } from "@/store/slices/bookingApiSlice";
 
 type Tab = "details" | "quota" | "bookings";
 
@@ -21,6 +22,7 @@ export default function DestinationDetailPage() {
   const [tab, setTab] = useState<Tab>("details");
 
   const { data, isLoading } = useGetDestinationQuery({ category: cat, id });
+  const { data: summary } = useGetDestinationSummaryQuery({ category: cat, destinationId: id });
   const [updateDestination, { isLoading: updating }] = useUpdateDestinationMutation();
   const [updateQuota, { isLoading: quotaLoading }] = useUpdateQuotaMutation();
 
@@ -86,71 +88,196 @@ export default function DestinationDetailPage() {
 
       {/* ── Details Tab ── */}
       {tab === "details" && (
-        <div className="bg-white rounded-xl shadow-sm p-5 space-y-4">
-          {/* Images */}
+        <div className="space-y-5">
+          {/* Image Gallery */}
           {item.images.length > 0 && (
-            <div className="grid grid-cols-3 gap-2">
-              {item.images.map((img, i) => (
-                <img key={i} src={img} alt="" className="w-full h-28 object-cover rounded-lg" />
-              ))}
+            <div className="bg-white rounded-xl shadow-sm overflow-hidden">
+              <div className="relative h-96 bg-gray-200">
+                <img src={item.images[0]} alt={item.name} className="w-full h-full object-cover" />
+              </div>
+              {item.images.length > 1 && (
+                <div className="grid grid-cols-4 gap-2 p-3">
+                  {item.images.slice(1, 5).map((img, i) => (
+                    <img key={i} src={img} alt="" className="w-full h-24 object-cover rounded-lg" />
+                  ))}
+                </div>
+              )}
             </div>
           )}
 
-          <div className="grid grid-cols-2 gap-4 text-sm">
-            <div>
-              <p className="text-gray-400 text-xs">Base Price</p>
-              <p className="font-semibold text-emerald-700">ETB {item.basePrice.toLocaleString()}</p>
-            </div>
-            <div>
-              <p className="text-gray-400 text-xs">Default Daily Quota</p>
-              <p className="font-semibold">{item.dailyQuota} visitors</p>
-            </div>
-          </div>
-
-          <div>
-            <p className="text-gray-400 text-xs mb-1">Description</p>
-            <p className="text-sm text-gray-700">{item.description}</p>
-          </div>
-
-          {item.videoUrl && (
-            <div>
-              <p className="text-gray-400 text-xs mb-2">Video</p>
-              <video
-                src={item.videoUrl}
-                controls
-                className="w-full rounded-lg max-h-72 bg-black"
-              />
-            </div>
-          )}
-
-          {item.transportationOptions.length > 0 && (
-            <div>
-              <p className="text-gray-400 text-xs mb-1">Transportation from Addis Ababa</p>
-              <ul className="space-y-1">
-                {item.transportationOptions.map((t, i) => (
-                  <li key={i} className="text-sm text-gray-700 flex items-center gap-2"><span className="text-emerald-500">→</span>{t}</li>
-                ))}
-              </ul>
-            </div>
-          )}
-
-          {item.wildlife && item.wildlife.length > 0 && (
-            <div>
-              <p className="text-gray-400 text-xs mb-1">Wildlife</p>
-              <div className="flex flex-wrap gap-2">
-                {item.wildlife.map((w, i) => (
-                  <span key={i} className="px-2 py-0.5 bg-green-50 text-green-700 text-xs rounded-full">{w}</span>
-                ))}
+          {/* Main Info Card */}
+          <div className="bg-white rounded-xl shadow-sm p-6 space-y-5">
+            {/* Price & Quota */}
+            <div className="grid grid-cols-3 gap-4 pb-5 border-b border-gray-100">
+              <div>
+                <p className="text-xs text-gray-400 mb-1">Base Price</p>
+                <p className="text-2xl font-bold text-emerald-700">
+                  ETB {parseFloat(String(item.basePrice)).toLocaleString()}
+                </p>
+                <p className="text-xs text-gray-400">per person</p>
+              </div>
+              <div>
+                <p className="text-xs text-gray-400 mb-1">Default Daily Quota</p>
+                <p className="text-2xl font-bold text-gray-900">{item.dailyQuota}</p>
+                <p className="text-xs text-gray-400">visitors per day</p>
+              </div>
+              <div>
+                <p className="text-xs text-gray-400 mb-1">Total Bookings</p>
+                {summary ? (
+                  <>
+                    <p className="text-2xl font-bold text-orange-600">{summary.totalBooked}</p>
+                    <p className="text-xs text-gray-400">
+                      people booked ({summary.totalUpcomingBookings} bookings)
+                    </p>
+                  </>
+                ) : (
+                  <p className="text-2xl font-bold text-gray-400">—</p>
+                )}
               </div>
             </div>
-          )}
 
-          <div className="pt-2">
+            {/* Description with Rich Formatting */}
+            <div>
+              <h2 className="text-lg font-semibold text-gray-800 mb-3">About</h2>
+              <div className="text-gray-600 leading-relaxed text-sm space-y-3">
+                {item.description.split('\n').map((paragraph, idx) => {
+                  // Check if line starts with a bold heading pattern (text followed by colon)
+                  const headingMatch = paragraph.match(/^([^:]+):\s*(.+)$/);
+                  if (headingMatch) {
+                    return (
+                      <div key={idx}>
+                        <h3 className="font-semibold text-gray-800 inline">{headingMatch[1]}:</h3>
+                        <span className="ml-1">{headingMatch[2]}</span>
+                      </div>
+                    );
+                  }
+                  // Regular paragraph
+                  return paragraph.trim() ? (
+                    <p key={idx}>{paragraph}</p>
+                  ) : null;
+                })}
+              </div>
+            </div>
+
+            {/* Video */}
+            {item.videoUrl && (
+              <div>
+                <h2 className="text-lg font-semibold text-gray-800 mb-3">Video Tour</h2>
+                <video
+                  src={item.videoUrl}
+                  controls
+                  className="w-full rounded-lg max-h-96 bg-black"
+                />
+              </div>
+            )}
+
+            {/* Wildlife */}
+            {item.wildlife && item.wildlife.length > 0 && (
+              <div>
+                <h2 className="text-lg font-semibold text-gray-800 mb-3">Wildlife</h2>
+                <div className="flex flex-wrap gap-2">
+                  {item.wildlife.map((w, i) => (
+                    <span key={i} className="px-3 py-1 bg-green-50 text-green-700 text-sm rounded-full">
+                      {w}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Transportation */}
+            {item.transportationOptions.length > 0 && (
+              <div>
+                <h2 className="text-lg font-semibold text-gray-800 mb-3">
+                  Getting There from Addis Ababa
+                </h2>
+                <div className="space-y-3">
+                  {item.transportationOptions.map((opt, i) => {
+                    // Check if option starts with a method like "By Air:", "By Bus:", etc.
+                    const methodMatch = opt.match(/^(By [^:]+):\s*(.+)$/s);
+                    
+                    return (
+                      <div key={i} className="flex items-start gap-3 p-4 bg-gray-50 rounded-xl border border-gray-100">
+                        <div className="mt-0.5">
+                          <span className="text-emerald-600 text-lg">→</span>
+                        </div>
+                        <div className="flex-1">
+                          {methodMatch ? (
+                            <>
+                              <p className="font-semibold text-gray-800 text-sm mb-1">{methodMatch[1]}</p>
+                              <p className="text-sm text-gray-600 leading-relaxed">{methodMatch[2]}</p>
+                            </>
+                          ) : (
+                            <p className="text-sm text-gray-700">{opt}</p>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* Festival Info */}
+            {cat === "festivals" && item.festivalType && (
+              <div>
+                <h2 className="text-lg font-semibold text-gray-800 mb-2">Festival Type</h2>
+                <p className="text-sm text-gray-600">{item.festivalType}</p>
+              </div>
+            )}
+
+            {/* Festival Dates */}
+            {cat === "festivals" && item.festivalDates && item.festivalDates.length > 0 && (
+              <div>
+                <h2 className="text-lg font-semibold text-gray-800 mb-3">Festival Dates</h2>
+                <div className="space-y-2">
+                  {item.festivalDates.map((fd, i) => (
+                    <div key={i} className="flex items-center justify-between p-3 bg-purple-50 rounded-lg">
+                      <div>
+                        <p className="text-sm font-medium text-gray-800">
+                          {new Date(fd.date).toLocaleDateString("en-ET", { 
+                            weekday: "short", 
+                            year: "numeric", 
+                            month: "short", 
+                            day: "numeric" 
+                          })}
+                        </p>
+                        {fd.eventName && <p className="text-xs text-gray-500">{fd.eventName}</p>}
+                      </div>
+                      <span className="px-3 py-1 bg-purple-100 text-purple-700 text-sm rounded-full">
+                        <span className="font-bold">{fd.availableQuota}</span> spots
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Creator Info */}
+            {item.creator && (
+              <div className="pt-4 border-t border-gray-100">
+                <p className="text-xs text-gray-400">
+                  Created by <span className="font-medium text-gray-600">{item.creator.fullName}</span>
+                  {item.createdAt && <> on {new Date(item.createdAt).toLocaleDateString()}</>}
+                </p>
+              </div>
+            )}
+          </div>
+
+          {/* Action Buttons */}
+          <div className="flex gap-3">
             <Link
               href={`/admin/${cat}/${id}/edit`}
-              className="px-4 py-2 bg-emerald-600 text-white text-sm font-medium rounded-lg hover:bg-emerald-700 transition-colors"
+              className="flex-1 text-center px-6 py-3 bg-emerald-600 text-white text-sm font-medium rounded-lg hover:bg-emerald-700 transition-colors"
             >
-              Edit Details
+              ✏️ Edit Details
+            </Link>
+            <Link
+              href={`/destination/${cat}/${id}`}
+              target="_blank"
+              className="px-6 py-3 bg-blue-50 text-blue-700 text-sm font-medium rounded-lg hover:bg-blue-100 transition-colors"
+            >
+              👁️ View as User
             </Link>
           </div>
         </div>
@@ -206,8 +333,8 @@ export default function DestinationDetailPage() {
                       </p>
                       {q.eventName && <p className="text-xs text-gray-400">{q.eventName}</p>}
                     </div>
-                    <span className="px-3 py-1 bg-emerald-50 text-emerald-700 text-sm font-semibold rounded-full">
-                      {q.availableQuota} spots
+                    <span className="px-3 py-1 bg-emerald-50 text-emerald-700 text-sm rounded-full">
+                      <span className="font-bold">{q.availableQuota}</span> spots
                     </span>
                   </div>
                 ))}
@@ -246,7 +373,7 @@ export default function DestinationDetailPage() {
                 </thead>
                 <tbody className="divide-y divide-gray-100">
                   {bookingsData?.bookings?.map((b: any) => (
-                    <tr key={b._id} className="hover:bg-gray-50">
+                    <tr key={b.id} className="hover:bg-gray-50">
                       <td className="px-4 py-3 font-medium text-gray-900">{b.user?.fullName}</td>
                       <td className="px-4 py-3 text-gray-500">{b.user?.email}</td>
                       <td className="px-4 py-3 text-gray-600">{new Date(b.bookingDate).toLocaleDateString()}</td>
